@@ -3,8 +3,13 @@ A hex dumper for the Commander X16.
 
 ## Command Summary
 
-* To move 0x100 bytes forward or back, use cursor left/right.
-* To move 0x300 bytes forward or back, use cursor up/down.
-* To move 0x1000 bytes forward or back, use return/PETSCII left arrow.
-* Change colors in the hex display with the numeral keys.
-* Change RAM bank with the A/a keys.
+| Cursor left  | Move back 0x100 bytes         |
+| Cursor right | Move forward 0x100 bytes      |
+| Cursor up    | Move back 0x300 bytes         |
+| Cursor down  | Move forward 0x300 bytes      |
+| Left arrow   | Move back 0x1000 bytes        |
+| Return       | Move forward 0x1000 bytes     |
+| 0-9          | Set color of hex display      |
+| A/a          | Change RAM bank               |
+| Q            | Quit to BASIC                 |
+
