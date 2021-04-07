@@ -3,6 +3,8 @@ A hex dumper for the Commander X16.
 
 ## Command Summary
 
+| Key          | Action                        |
+|--------------|-------------------------------|
 | Cursor left  | Move back 0x100 bytes         |
 | Cursor right | Move forward 0x100 bytes      |
 | Cursor up    | Move back 0x300 bytes         |
