@@ -1,5 +1,4 @@
 
-
 #include <peekpoke.h>
 #include <cbm.h>
 #include <conio.h>
@@ -41,24 +40,14 @@ char  petscii[16];
 char* release;
 byte color;
 
-byte colorPalette[16] =
+byte quit = 0;
+
+byte colorPalette[4] =
 	{
 	PURPLE,
 	YELLOW,
 	GREEN,
-	LTGREY,	
-	PURPLE,
-	YELLOW,
-	GREEN,
-	LTGREY,	
-	PURPLE,
-	YELLOW,
-	GREEN,
-	LTGREY,	
-	PURPLE,
-	YELLOW,
-	GREEN,
-	LTGREY	
+	LTGREY
 	};
 
 void status()
@@ -75,7 +64,7 @@ void status()
         );
 
    gotoxy(0,3);
-   cputs("       00 01 02 03 04 05 06 07   08 09 0a 0b 0c 0d 0e 0f\r\n\r\n");
+   cputs("        0  1  2  3  4  5  6  7    8  9  a  b  c  d  e  f\r\n\r\n");
 
    cbm_k_bsout(color);
 }
@@ -83,6 +72,7 @@ void status()
 void hexdump()
 {
    word currentAddress;
+   word reverseAddress;
 
    for(row=0;row<48;++row)
    {
@@ -99,7 +89,7 @@ void hexdump()
 
          if ( currentAddress > 1 
            && currentAddress < 18)
-            cbm_k_bsout(colorPalette[currentAddress-2]);
+            cbm_k_bsout(colorPalette[(currentAddress-2) % 4]);
 
          cprintf("%02x ", c);
 
@@ -120,19 +110,20 @@ void hexdump()
          if (c > 31 && c < 128)
             petscii[col] = c; 
       }
+      cputc(' ');
       for(col=0;col<16;++col)
       {
-         currentAddress = address + row * 16 + col;
-         if ( currentAddress > 0xfff5
-           && currentAddress < 0xfffa )
+         reverseAddress = (address + row * 16 + col > 0xfff5)
+                       && (address + row * 16 + col < 0xfffa);
+
+         if ( reverseAddress )
             revers(1);
 
          cputc(petscii[col]);
          if (col == 7)
             cputc(' ');
 
-         if ( currentAddress > 0xfff5
-           && currentAddress < 0xfffa )
+         if ( reverseAddress )
             revers(0);
       }
    }
@@ -143,13 +134,6 @@ void controls()
    cbm_k_bsout(LTGREY);
    cputsxy(1,58,"left/right $100; up/down $300; return/arrow $1000 ");
    cbm_k_bsout(color);
-}
-
-void screen()
-{
-   status();
-   hexdump();
-   controls();
 }
 
 void setRAMbank(byte bankNum)
@@ -169,6 +153,10 @@ void command()
 {
    switch(cgetc())
    { 
+      case 'q':  // quit
+        quit = 1;
+   	break;
+
       case 0x9d: // right
 	address -= 0x100;
 	break;
@@ -197,8 +185,10 @@ void command()
 	++ramBank;
         setRAMbank(ramBank);
         status();
-        if (address <= 0xa000 - 0x300
+        if ((address <= 0xa000 - 0x300
          && address >= 0xc000)
+         || (address < 0xfd00
+         &&  address > 0x0300))
            return;
         break;
 
@@ -206,8 +196,10 @@ void command()
 	--ramBank;
         setRAMbank(ramBank);
         status();
-        if (address <= 0xa000 - 0x300
+        if ((address <= 0xa000 - 0x300
          && address >= 0xc000)
+         || (address < 0xfd00
+         &&  address > 0x0300))
            return;
         break;
 
@@ -222,7 +214,9 @@ void command()
       case '9': setColor(LTGREEN); break;
       case '0': setColor(LTGREY);  break;
    }
-   screen();
+   status();
+   hexdump();
+   controls();
 }
 
 void getVersion()
@@ -235,28 +229,26 @@ void getVersion()
    }
    else
    {
-      release = "release";
+      release = "";
       modVersion = version;
    }
 }
 
 void determineBankCount()
 {
-   int i=0;
+   bankCount = 64;
 
-   setRAMbank(1);    
-   POKE(0xa000,17);
-
-   bankCount = 256;
-
-   setRAMbank(193);
-   if (PEEK(0xa000) == 17) bankCount = 192;
-
-   setRAMbank(129);
-   if (PEEK(0xa000) == 17) bankCount = 128;
-
-   setRAMbank(65);
-   if (PEEK(0xa000) == 17) bankCount = 64;
+   setRAMbank(255);
+   POKE(0xb000,17); 
+   if (PEEK(0xb000) == 17) bankCount = 256;
+   
+   setRAMbank(191);
+   POKE(0xb000,17);  
+   if (PEEK(0xb000) == 17) bankCount = 192;
+   
+   setRAMbank(127);
+   POKE(0xb000,17);  
+   if (PEEK(0xb000) == 17) bankCount = 128;
 }
 
 void main(void)
@@ -268,7 +260,6 @@ void main(void)
 
    cbm_k_bsout(BLACK);
    cbm_k_bsout(TO_BACKGROUND);
-   
    setColor(LTBLUE);
 
    clrscr();
@@ -277,10 +268,11 @@ void main(void)
    cbm_k_setlfs(0,8,0);
    cbm_k_load(2, 0x0f800);
 
-   screen();
+   status();
+   hexdump();
    controls();
 
-   while(1)
+   while(quit == 0)
    {
       command();
    }
